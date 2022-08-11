@@ -4,17 +4,14 @@ require('dotenv').config();
 const cors = require('cors');
 const ObjectId = require('mongodb').ObjectId;
 const app = express();
-// app.use(express.json());
-// process.env.PORT  || 
 const port =process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
+// console.log(process.env.DB_USER, process.env.DB_PASS);
 
-
+const stripe = require("stripe")('sk_test_51K7X9NJ0NKjQWCj1K6gcgBJXCsNxtXrjnkAhCjux7lQkLBew8pdZ6G78zuMd6awilc5yFonb3KX9kGH7ifetXunw00kCwclbG6');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.nasnt.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
-
-
 
 async function run() {
     try {
@@ -27,7 +24,7 @@ async function run() {
        const reviewCollection = database.collection('reviewCollection'); 
         
         //   get product from databasae 
-
+      
         app.get('/products',async(req,res)=>{
             // console.log('this is hit');
            const user = req.body;
@@ -49,7 +46,7 @@ async function run() {
         app.post('/products' , async (req,res)=>{
           const product = req.body;
           const result = await carCollection.insertOne(product);
-          console.log(product);
+          // console.log(product);
           res.json(result);
     
         })
@@ -112,7 +109,7 @@ async function run() {
       app.post('/review' , async (req,res)=>{
         const product = req.body;
         const result = await reviewCollection.insertOne(product);
-        console.log(product);
+        // console.log(product);
         res.json(result);
   
       })
@@ -125,6 +122,39 @@ async function run() {
        res.json(result);
 
     })
+    app.post("/create-payment-intent", async (req, res) => {
+      const  service = req.body;
+      const  price = service.price;
+      // console.log(price);
+    let paymentIntent;
+    let amount = 100;
+      if(price){
+        amount = price * 100;
+      }
+      console.log(amount);
+      try{
+       
+        // Create a PaymentIntent with the order amount and currency
+         paymentIntent = await stripe.paymentIntents.create({
+          amount: amount,
+          currency: "eur",
+          payment_method_types: ['card'],
+          // automatic_payment_methods: ['card'],
+          // automatic_payment_methods: {
+          //   enabled: true,
+          // },
+        });
+    
+      } 
+      catch(err){
+        console.log(err);
+      }     // const paymentInfor = await stripe.paymentIntents.create({
+    // console.log(paymentIntent.client_secret);
+        res.json({
+          clientSecret: paymentIntent.client_secret,
+        });
+    });
+  
 }
 finally {
     // await client.close();
